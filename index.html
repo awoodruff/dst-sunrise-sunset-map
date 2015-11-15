@@ -156,8 +156,8 @@ d3.json( 'grid.json', function(json){
       text += d3.select( d3.select('#'+timeMode+ ' select').node().selectedOptions[0] ).html();
       d3.select( '#tooltip' )
         .style('display','block' )
-        .style('top',d3.event.pageY - 80)
-        .style('left',d3.event.pageX - d3.select('#tooltip').node().offsetWidth/2 )
+        .style('top',d3.event.pageY - 85)
+        .style('left',Math.min( width-210, Math.max( 10, d3.event.pageX - d3.select('#tooltip').node().offsetWidth/2 ) ) )
         .html(text);
     }).on('mouseout',function(){
       d3.select('#chart-hint').style('display','block');
