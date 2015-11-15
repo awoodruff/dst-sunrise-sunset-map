@@ -33,13 +33,25 @@
     }
     div.option select{ font-size: 18px; margin-left: 10px;}
     #tooltip{ padding: 10px; background-color: white; border: 1px solid #ccc; border-radius: 5px; position: absolute; text-align: center; display: none;}
+    div.time-option span{
+      display: inline;
+    }
+    div.time-option.active span{
+      display: none;
+    }
+    div.time-option select{
+      display: none;
+    }
+    div.time-option.active select{
+      display: inline;
+    }
   </style>
 </head>
 <body>
   <div id="options">
     <h2>How many days would have</h2>
     <div id="rise" class="option time-option active">
-      sunrise before 
+      sunrise before <span>7:00 AM</span>
       <select>
         <option value='5'>5:00 AM</option>
         <option value='5.5'>5:30 AM</option>
@@ -53,7 +65,7 @@
       </select>
     </div>
     <div id="set" class="option time-option">
-      sunset after 
+      sunset after <span>5:00 PM</span>
       <select disabled="disabled">
         <option value='16.5'>4:30 PM</option>
         <option value='17' selected="selected">5:00 PM</option>
@@ -283,6 +295,8 @@ d3.selectAll('.option').on('click',function(){
 d3.selectAll('select').on('change',function(){
   riseTime = parseFloat( d3.select('#rise select').node().value );
   setTime = parseFloat( d3.select('#set select').node().value );
+  d3.select( '#set span' ).html( d3.select( d3.select('#set select').node().selectedOptions[0] ).html() );
+  d3.select( '#rise span' ).html( d3.select( d3.select('#rise select').node().selectedOptions[0] ).html() );
   drawMap( dstMode, timeMode );
 });
 
