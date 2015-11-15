@@ -1,0 +1,374 @@
+<html>
+<head>
+  <title>DST sunrise and sunset map</title>
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700' rel='stylesheet' type='text/css'>
+  <style>
+    html, body{ font-family: 'PT Sans', sans-serif; font-size: 18px; color: #333;}
+    #map, #chart-container, #options{ width: 800px; margin: auto;}
+    h2{ text-align: center;}
+    .axis path{ fill: none;}
+    .axis line{ stroke: #ccc;}
+    .axis text{ font-size: 10px;}
+    #grid path:hover{ fill: #666;}
+    #yAxis line{ stroke-dasharray: 2,2;}
+    #yAxis g:first-child line{ stroke-dasharray: none;}
+    div.option {
+      cursor: pointer;
+      border: 1px solid #ccc;
+      margin: 10px auto;
+      border-radius: 5px;
+      padding: 15px;
+      opacity: .5;
+      width: 50%;
+      text-align: center;
+    }
+    div.option:hover{
+      border-color: #666;
+    }
+    div.option.active{
+      opacity: 1;
+    }
+    div.option.active:hover{
+      border-color: #ccc;
+    }
+    div.option select{ font-size: 18px; margin-left: 10px;}
+    #tooltip{ padding: 10px; background-color: white; border: 1px solid #ccc; border-radius: 5px; position: absolute; text-align: center;}
+  </style>
+</head>
+<body>
+  <div id="options">
+    <h2>How many days with</h2>
+    <div id="rise" class="option time-option active">
+      sunrise before 
+      <select>
+        <option value='5'>5:00 AM</option>
+        <option value='5.5'>5:30 AM</option>
+        <option value='6'>6:00 AM</option>
+        <option value='6.5'>6:30 AM</option>
+        <option value='7' selected="selected">7:00 AM</option>
+        <option value='7.5'>7:30 AM</option>
+        <option value='8'>8:00 AM</option>
+        <option value='8.5'>8:30 AM</option>
+        <option value='9'>9:00 AM</option>
+      </select>
+    </div>
+    <div id="set" class="option time-option">
+      sunset after 
+      <select disabled="disabled">
+        <option value='16.5'>4:30 PM</option>
+        <option value='17' selected="selected">5:00 PM</option>
+        <option value='17.5'>5:30 PM</option>
+        <option value='18'>6:00 PM</option>
+        <option value='18.5'>6:30 PM</option>
+        <option value='19'>7:00 PM</option>
+        <option value='19.5'>7:30 PM</option>
+        <option value='20'>8:00 PM</option>
+        <option value='20.5'>8:00 PM</option>
+      </select>
+    </div>
+    <h2>would there be if we</h2>
+    <div id="normal" class="option dst-option active">keep the status quo?</div>
+    <div id="noDST" class="option dst-option">abolish daylight saving time?</div>
+    <div id="allDST" class="option dst-option">always use daylight saving time?</div>
+  </div>
+  <div id="map"></div>
+  <div id="chart-container"></div>
+  <div id="tooltip"></div>
+<script src="suncalc.js"></script>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+var width = 800,
+  height = 500;
+
+var g = d3.select('#map')
+  .append('svg')
+  .attr('width',width)
+  .attr('height',height)
+  .append('g').attr('id','grid');
+
+var projection = d3.geo.albersUsa()
+    .scale(1000)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+var date = new Date();
+
+var colors = d3.scale.linear().domain([365,0]).range(['#EFEE69','#2F2B3C']).clamp(true).interpolate(d3.interpolateHcl);
+
+var gridRiseData = [],
+  gridSetData = [];
+
+d3.json( 'grid.json', function(json){
+  var features = topojson.feature(json, json.objects.grid_clipped).features;
+  g.selectAll('path')
+    .data(features)
+    .enter()
+    .append('path')
+    .attr('d',path)
+    .each( function(d){
+      d.centroid = d3.geo.centroid(d);
+      d.times = times[ Math.round( (d.centroid[1] - startLat) / .25 ) ]; // the pre-calculated sun times near this latitude 
+      d.offset = (d.centroid[0] - 15 * d.properties.zone) / 15; // longitude (i.e., time) offset from time zone center
+    })
+    .on('mouseover',function(d){
+      var date = new Date(2015,11,31);
+      var riseCount = 0;
+      var setCount = 0;
+      var times = [];
+      for ( var i = 0; i < 365; i ++){
+        date.setDate( date.getDate() + 1 );
+        var sun = SunCalc.getTimes(date,d.centroid[1],d.centroid[0]);
+        var set = sun.sunset.getUTCHours() + d.properties.zone + sun.sunset.getMinutes()/60;
+        if ( set < 3 ) set += 24; // sunset is occasionally after midnight
+        var rise = sun.sunrise.getUTCHours() + d.properties.zone + sun.sunrise.getMinutes()/60;
+        if ( date >= new Date(2015,2,8) && date < new Date(2015,10,1) && d.properties.DST == 1 ){
+          rise++; 
+          set++;
+        }
+        if ( isNaN( sun.sunset.getDate() ) ){
+          if ( date.getMonth() >= 2 && date.getMonth() <= 8 ){
+            // always light
+            set = 28;
+            rise = -1;
+          } else {
+            // always dark
+            set = -5;
+            rise = -5;
+          }
+        }
+        times.push([rise,set]);
+      }
+      d3.select('#chart-hint').style('display','none');
+      d3.select('#chart').selectAll('path').remove();
+      d3.select('#chart').append('path')
+        .datum(times)
+        .attr('d',line)
+        .attr('fill','orange')
+        .attr('fill-opacity',.75)
+        .attr('stroke','none');
+      var val = d[dstMode][timeMode];
+      var text = val + ' day' + (val != 1 ? 's ':' ') + 'with<br/>';
+      text += (timeMode == 'rise' ? 'sunrise before ' : 'sunset after ');
+      text += d3.select( d3.select('#'+timeMode+ ' select').node().selectedOptions[0] ).html();
+      d3.select( '#tooltip' )
+        .style('display','block' )
+        .style('top',d3.event.pageY - 80)
+        .style('left',d3.event.pageX - d3.select('#tooltip').node().offsetWidth/2 )
+        .html(text);
+    }).on('mouseout',function(){
+      d3.select('#chart-hint').style('display','block');
+      d3.select('#chart').selectAll('path').remove();
+      d3.select( '#tooltip' )
+      .style('display','none' )
+    })
+  createLegend();
+  drawMap('normal','rise');
+});
+
+
+/*
+get sun times for a bunch of latitudes along the prime meridian.
+then, for any given location, we can get correct-ish times just by subtracting hours from these times for longitude
+*/
+var times = [], startLat = 18, endLat = 72;
+for ( var lat = startLat; lat < endLat; lat += .25 ){
+  var date = new Date(2014,11,31);
+  var dateArr = [];
+  for ( var i=0; i < 365; i++ ){
+    date.setDate( date.getDate() + 1 );
+    var sun = SunCalc.getTimes(date,lat,0);
+    var set = sun.sunset.getUTCHours() + sun.sunset.getMinutes()/60;
+    if ( set < 3 ) set += 24; // sunset is occasionally after midnight
+    var rise = sun.sunrise.getUTCHours() + sun.sunrise.getMinutes()/60;
+    if ( isNaN( sun.sunset.getDate() ) ){ // flag the days of eternal sun or darkness at high latitudes
+      if ( date.getMonth() >= 2 && date.getMonth() <= 8 ){
+        set = 28;
+        rise = -1;
+      } else {
+        set = 12;
+        rise = 12;
+      }
+    }
+    dateArr.push([rise,set]);
+  }
+  times.push(dateArr);
+}
+
+var chartScale = d3.scale.linear().domain([0,26]).range([200,0]);
+var chartXScale = d3.time.scale().domain([new Date(2015,0,1),new Date(2015,11,31)]).range([0,width-250]);
+
+var line = d3.svg.area()
+  .x( function(d,i){ return (i/365) * (width-250) } )
+  .y0( function(d){ if ( d[0] < 0 ) return chartScale(0); return chartScale(d[0])} )
+  .y1( function(d){ return chartScale(d[1])} )
+  .defined( function(d){ return d[0] != -5 })
+
+var axis = d3.svg.axis()
+  .scale( chartScale )
+  .tickSize(width-250)
+  .tickValues([0,3,6,9,12,15,18,21,24])
+  .tickFormat( function(t){
+    if ( !t || t == 24) return '12am';
+    if ( t == 12 ) return '12pm';
+    return t % 12 + (t>=12 ? 'pm' : 'am')
+  })
+  .orient('right');
+
+var xAxis = d3.svg.axis()
+  .scale( chartXScale )
+  .ticks(d3.time.months)
+  .tickFormat(d3.time.format("%B"))
+  .orient('bottom');
+
+  
+d3.select('#chart-container').append('svg')
+  .attr('id','chartsvg')
+  .attr('width',width)
+  .attr('height',250);
+
+
+d3.select('#chartsvg')
+  .append('g')
+  .attr('class','axis')
+  .attr('id','yAxis')
+  .attr('transform','translate(125,0)')
+  .call(axis);
+
+d3.select('#chartsvg')
+  .append('g')
+  .attr('class','axis')
+  .attr('id','xAxis')
+  .attr('transform','translate(125,200)')
+  .call(xAxis);
+
+d3.select('#chartsvg').append('g').attr('id','chart')
+  .attr('transform','translate(125,0)');
+
+d3.select('#chartsvg').append('text').attr('id','chart-hint')
+  .attr('transform','translate(400,105)')
+  .attr('fill','#333')
+  .attr('text-anchor','middle')
+  .text( 'Hover over map to see a location\'s daylight during the year.')
+
+
+d3.json( 'states.json', function(json){
+  var interiors = topojson.mesh(json, json.objects.us_states_50);
+  d3.select('svg').append('g').append('path').datum(interiors).attr('d',path).attr('fill','none').attr('stroke','#666').attr('stroke-width',0.5).attr('pointer-events','none')
+});
+
+d3.selectAll('.option').on('click',function(){
+  if ( d3.select(this).classed('active') ) return;
+  var id = this.id;
+  if ( id == 'rise' || id == 'set' ){
+    d3.selectAll('.time-option').classed('active',false);
+  } else {
+    d3.selectAll('.dst-option').classed('active',false);
+  }
+  d3.select(this).classed('active',true);
+  var time = d3.select('.time-option.active').attr('id'),
+    dst = d3.select('.dst-option.active').attr('id');
+  d3.selectAll('select').attr('disabled','disabled');
+  d3.select('.time-option.active select').attr('disabled',null);
+  if ( time != timeMode || dst != dstMode ){
+    timeMode = time;
+    dstMode = dst;
+    drawMap( dst, time );
+  }
+});
+
+d3.selectAll('select').on('change',function(){
+  riseTime = parseFloat( d3.select('#rise select').node().value );
+  setTime = parseFloat( d3.select('#set select').node().value );
+  drawMap( dstMode, timeMode );
+});
+
+var timeMode = 'rise',
+  dstMode = 'normal';
+
+var riseTime = 7,
+  setTime = 17;
+function drawMap( scenario, riseOrSet ){
+  g.selectAll( 'path' )
+    .each( function(d){
+      d.normal = {rise:0,set:0};
+      d.noDST = {rise:0,set:0};
+      d.allDST = {rise:0,set:0};
+      for (var i in d.times){
+        var rise = d.times[i][0] - d.offset,
+          set = d.times[i][1] - d.offset;
+        if ( i >= 66 && i < 311 && d.properties.DST == 1 ){
+          if ( rise + 1 <= riseTime ) d.normal.rise ++; 
+          if ( set + 1 >= setTime ) d.normal.set ++;
+        } else {
+          if ( rise <= riseTime ){ d.normal.rise++; }
+          if ( set >= setTime ){ d.normal.set++; }
+        }
+        if ( rise + 1 <= riseTime ) d.allDST.rise ++; 
+        if ( set + 1 >= setTime ) d.allDST.set ++;
+        if ( rise <= riseTime ){ d.noDST.rise++; }
+        if ( set >= setTime ){ d.noDST.set++; }
+      }
+      d3.select(this)
+        .attr( 'fill', function(d){ return colors( d[scenario][riseOrSet] ) })
+        .attr( 'stroke', function(d){ return colors( d[scenario][riseOrSet] ) });
+    })
+}
+
+function createLegend(){
+  var l = d3.select('#map svg')
+    .append('g')
+    .attr('id','legend')
+    .attr('transform','translate(490,40)');
+  for ( var i=0; i<365; i++ ){
+    l.append('line')
+      .attr('x1',i*.5)
+      .attr('x2',i*.5)
+      .attr('y1',0)
+      .attr('y2',15)
+      .attr('stroke',colors(i))
+      .attr('stroke-width',1);
+  }
+  l.append('text')
+    .attr('x',365/4)
+    .attr('y',30)
+    .attr('text-anchor','middle')
+    .attr('font-size',14)
+    .attr('fill','#333')
+    .text('days');
+  l.append('text')
+    .attr('x',-14)
+    .attr('y',12)
+    .attr('font-size',14)
+    .attr('fill','#333')
+    .text('0');
+  l.append('text')
+    .attr('x',365/2 + 6)
+    .attr('y',12)
+    .attr('font-size',14)
+    .attr('fill','#333')
+    .text('365');
+}
+
+function drawDate( date ){
+  d3.select('#date').html(date);
+  g.selectAll('path').each( function(d){
+    d.sun = SunCalc.getTimes(date,d.centroid[1],d.centroid[0]);
+    var h = d.sun.dusk.getUTCHours() + d.properties.zone + d.sun.dusk.getMinutes()/60;
+    if ( h < 0 ) h += 24;
+    //var f = h >= 6 ? '#2c7fb8' : '#edf8b1';
+    if ( date >= new Date(2015,2,8) && date <= new Date(2015,10,1) && d.properties.DST == 1 ) h += 1;
+    if ( isNaN(h) ) h = 24;
+    //var f = colors(h);
+    var f = h <= 17 ? '#2c7fb8' : '#edf8b1';
+    d3.select(this).attr('fill',f);
+    d3.select(this).attr('stroke',f);
+  });
+}
+
+</script>
+</body>
+</html>
