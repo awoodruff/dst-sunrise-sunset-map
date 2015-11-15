@@ -37,7 +37,7 @@
 </head>
 <body>
   <div id="options">
-    <h2>How many days with</h2>
+    <h2>How many days would have</h2>
     <div id="rise" class="option time-option active">
       sunrise before 
       <select>
@@ -66,7 +66,7 @@
         <option value='20.5'>8:00 PM</option>
       </select>
     </div>
-    <h2>would there be if we</h2>
+    <h2>if we</h2>
     <div id="normal" class="option dst-option active">keep the status quo?</div>
     <div id="noDST" class="option dst-option">abolish daylight saving time?</div>
     <div id="allDST" class="option dst-option">always use daylight saving time?</div>
@@ -252,7 +252,7 @@ d3.select('#chartsvg').append('text').attr('id','chart-hint')
   .attr('transform','translate(400,105)')
   .attr('fill','#333')
   .attr('text-anchor','middle')
-  .text( 'Hover over map to see a location\'s daylight during the year.')
+  .text( 'Hover over map to see a location\'s daylight hours during the year.')
 
 
 d3.json( 'states.json', function(json){
