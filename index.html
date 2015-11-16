@@ -288,7 +288,7 @@ d3.selectAll('.option').on('click',function(){
   if ( time != timeMode || dst != dstMode ){
     timeMode = time;
     dstMode = dst;
-    drawMap( dst, time );
+    updateMap();
   }
 });
 
@@ -331,6 +331,12 @@ function drawMap( scenario, riseOrSet ){
         .attr( 'fill', function(d){ return colors( d[scenario][riseOrSet] ) })
         .attr( 'stroke', function(d){ return colors( d[scenario][riseOrSet] ) });
     })
+}
+
+function updateMap(){
+  g.selectAll('path')
+    .attr( 'fill', function(d){ return colors( d[dstMode][timeMode] ) })
+    .attr( 'stroke', function(d){ return colors( d[dstMode][timeMode] ) });
 }
 
 function createLegend(){
