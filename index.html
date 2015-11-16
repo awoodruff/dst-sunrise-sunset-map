@@ -169,7 +169,7 @@ d3.json( 'grid.json', function(json){
       d3.select( '#tooltip' )
         .style('display','block' )
         .style('top',d3.event.pageY - 85)
-        .style('left',Math.min( width-210, Math.max( 10, d3.event.pageX - d3.select('#tooltip').node().offsetWidth/2 ) ) )
+        .style('left',Math.min( window.innerWidth-210, Math.max( 10, d3.event.pageX - d3.select('#tooltip').node().offsetWidth/2 ) ) )
         .html(text);
     }).on('mouseout',function(){
       d3.select('#chart-hint').style('display','block');
