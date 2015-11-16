@@ -315,6 +315,7 @@ function drawMap( scenario, riseOrSet ){
         var rise = d.times[i][0] - d.offset,
           set = d.times[i][1] - d.offset;
         if ( i >= 66 && i < 311 && d.properties.DST == 1 ){
+          // these are DST days
           if ( rise + 1 <= riseTime ) d.normal.rise ++; 
           if ( set + 1 >= setTime ) d.normal.set ++;
         } else {
@@ -365,22 +366,6 @@ function createLegend(){
     .attr('font-size',14)
     .attr('fill','#333')
     .text('365');
-}
-
-function drawDate( date ){
-  d3.select('#date').html(date);
-  g.selectAll('path').each( function(d){
-    d.sun = SunCalc.getTimes(date,d.centroid[1],d.centroid[0]);
-    var h = d.sun.dusk.getUTCHours() + d.properties.zone + d.sun.dusk.getMinutes()/60;
-    if ( h < 0 ) h += 24;
-    //var f = h >= 6 ? '#2c7fb8' : '#edf8b1';
-    if ( date >= new Date(2015,2,8) && date <= new Date(2015,10,1) && d.properties.DST == 1 ) h += 1;
-    if ( isNaN(h) ) h = 24;
-    //var f = colors(h);
-    var f = h <= 17 ? '#2c7fb8' : '#edf8b1';
-    d3.select(this).attr('fill',f);
-    d3.select(this).attr('stroke',f);
-  });
 }
 
 </script>
