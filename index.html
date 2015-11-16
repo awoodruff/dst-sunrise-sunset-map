@@ -137,7 +137,7 @@ d3.json( 'grid.json', function(json){
         var set = sun.sunset.getUTCHours() + d.properties.zone + sun.sunset.getMinutes()/60;
         if ( set < 3 ) set += 24; // sunset is occasionally after midnight
         var rise = sun.sunrise.getUTCHours() + d.properties.zone + sun.sunrise.getMinutes()/60;
-        if ( date >= new Date(2015,2,8) && date < new Date(2015,10,1) && d.properties.DST == 1 ){
+        if ( dstMode == 'allDST' || ( dstMode == 'normal' && i >= 66 && i < 311 && d.properties.DST == 1) ) {
           rise++; 
           set++;
         }
