@@ -10,7 +10,7 @@
     .axis line{ stroke: #ccc;}
     .axis text{ font-size: 10px;}
     #grid path:hover{ fill: #666;}
-    #yAxis line{ stroke-dasharray: 2,2;}
+    #yAxis line{ stroke-dasharray: 3,2;}
     #yAxis g:first-child line{ stroke-dasharray: none;}
     div.option {
       cursor: pointer;
@@ -222,8 +222,9 @@ var line = d3.svg.area()
 var axis = d3.svg.axis()
   .scale( chartScale )
   .tickSize(width-250)
-  .tickValues([0,3,6,9,12,15,18,21,24])
+  .tickValues(d3.range(25))
   .tickFormat( function(t){
+    if ( t % 3 != 0 ) return '';
     if ( !t || t == 24) return '12am';
     if ( t == 12 ) return '12pm';
     return t % 12 + (t>=12 ? 'pm' : 'am')
