@@ -45,6 +45,8 @@
     div.time-option.active select{
       display: inline;
     }
+    a{ color: orange; }
+    a:hover{ color: black;}
   </style>
 </head>
 <body>
@@ -86,6 +88,7 @@
   <div id="map"></div>
   <div id="chart-container"></div>
   <div id="tooltip"></div>
+  <p style="font-size: 12px;">By <a href="http://andywoodruff.com">Andy Woodruff</a>, <a href="http://axismaps.com">Axis Maps</a></p>
 <script src="lib/suncalc/suncalc.js"></script>
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script src="http://d3js.org/topojson.v1.min.js"></script>
@@ -176,7 +179,7 @@ d3.json( 'grid.json', function(json){
       d3.select('#chart').selectAll('path').remove();
       d3.select( '#tooltip' )
       .style('display','none' )
-    })
+    });
   createLegend();
   drawMap('normal','rise');
 });
